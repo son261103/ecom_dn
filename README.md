@@ -126,6 +126,46 @@ Tất cả route có prefix `/api`.
 | GET | `/orders` | Đơn của user hiện tại |
 | GET | `/orders/:id` | Chi tiết một đơn |
 
+### Upload (yêu cầu Bearer token + role `ADMIN`)
+| Method | Path | Mô tả |
+| --- | --- | --- |
+| GET | `/upload/status` | Kiểm tra đã cấu hình Cloudinary chưa |
+| POST | `/upload/image` | Upload file (multipart `file`), tối đa 5MB |
+| POST | `/upload/image-from-url` | Lấy ảnh từ URL rồi đẩy lên Cloudinary |
+| DELETE | `/upload/:publicId` | Xoá ảnh trên Cloudinary |
+
+Chỉ nhận `image/jpeg`, `image/png`, `image/webp`, `image/avif`. Giao diện quản lý ảnh: `/admin/images`.
+
+## Ảnh: Cloudinary
+
+Ảnh sản phẩm lưu trên Cloudinary và phân phối qua CDN `res.cloudinary.com`.
+
+Điền credentials vào `backend/.env` (lấy ở **Cloudinary Dashboard → Settings → API Keys**):
+
+```
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-key
+CLOUDINARY_API_SECRET=your-secret
+```
+
+Ứng dụng vẫn khởi động bình thường khi thiếu credentials — `CloudinaryService.isConfigured` trả `false`, các endpoint upload trả lỗi 400 với hướng dẫn rõ ràng, và seed giữ nguyên URL ảnh Unsplash.
+
+Sau khi điền key, chạy lại seed để đẩy toàn bộ ảnh mẫu lên CDN:
+
+```bash
+cd backend && pnpm prisma db seed
+```
+
+Seed dùng `public_id` dạng `{slug}-1` và `{slug}-2` với `overwrite: true`, nên chạy lại nhiều lần không tạo ảnh trùng.
+
+Tài khoản admin để test giao diện upload:
+
+```bash
+# đổi role ADMIN cho một user đã có, hoặc tạo mới
+docker exec -it ecom_dn_pg psql -U ecom -d ecom_dn \
+  -c "UPDATE users SET role='ADMIN' WHERE email='you@example.com';"
+```
+
 ## Cấu trúc backend
 
 ```
@@ -135,6 +175,7 @@ src/
 ├── products/        list (filter + phân trang), detail, featured
 ├── categories/      danh mục theo giới tính
 ├── orders/          tạo đơn trong transaction, lịch sử đơn
+├── upload/          Cloudinary service + endpoint (chỉ ADMIN)
 └── common/          decorator CurrentUser
 ```
 
@@ -155,12 +196,14 @@ src/
 │   ├── product/[slug]/    chi tiết + chọn màu/size
 │   ├── cart/              giỏ hàng + checkout
 │   ├── login|register/    auth
-│   └── account/           profile + lịch sử đơn
+│   ├── account/           profile + lịch sử đơn
+│   └── admin/images/      quản lý ảnh Cloudinary (chỉ ADMIN)
 ├── components/
 │   ├── layout/            header, footer
 │   ├── product/           card, list view, filters, purchase panel
 │   ├── cart/              cart view, checkout form
 │   ├── auth/, account/
+│   ├── upload/            image uploader
 │   └── providers/         CartProvider (giỏ hàng + session)
 ├── lib/
 │   ├── api.ts             fetch wrapper + ApiError

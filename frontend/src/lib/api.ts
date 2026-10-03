@@ -20,14 +20,18 @@ export class ApiError extends Error {
 
 async function request<T>(
   path: string,
-  options: RequestInit & { token?: string } = {},
+  options: RequestInit & {
+    token?: string;
+    /** Set for multipart bodies so the browser can add its own boundary. */
+    isFormData?: boolean;
+  } = {},
 ): Promise<T> {
-  const { token, headers, ...rest } = options;
+  const { token, headers, isFormData, ...rest } = options;
 
   const response = await fetch(`${API_URL}${path}`, {
     ...rest,
     headers: {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
@@ -136,5 +140,49 @@ export const ordersApi = {
 
   list(token: string) {
     return request<Order[]>('/orders', { token });
+  },
+};
+
+export interface UploadedImage {
+  publicId: string;
+  url: string;
+  secureUrl: string;
+  width: number;
+  height: number;
+  format: string;
+  bytes: number;
+}
+
+export const uploadApi = {
+  status(token: string) {
+    return request<{ configured: boolean }>('/upload/status', { token });
+  },
+
+  async image(file: File, token: string) {
+    const form = new FormData();
+    form.append('file', file);
+
+    // Content-Type must stay unset so the browser adds the multipart boundary.
+    return request<UploadedImage>('/upload/image', {
+      method: 'POST',
+      token,
+      body: form,
+      isFormData: true,
+    });
+  },
+
+  fromUrl(url: string, token: string) {
+    return request<UploadedImage>('/upload/image-from-url', {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ url }),
+    });
+  },
+
+  remove(publicId: string, token: string) {
+    return request<{ result: string }>(
+      `/upload/${encodeURIComponent(publicId)}`,
+      { method: 'DELETE', token },
+    );
   },
 };

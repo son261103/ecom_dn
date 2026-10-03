@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { v2 as cloudinary } from 'cloudinary';
 import {
   Gender,
   PrismaClient,
@@ -7,6 +8,32 @@ import {
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
+
+const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+const cloudinaryReady = Boolean(
+  cloudName &&
+    process.env.CLOUDINARY_API_KEY &&
+    process.env.CLOUDINARY_API_SECRET,
+);
+
+if (cloudinaryReady) {
+  cloudinary.config({
+    cloud_name: cloudName,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true,
+  });
+} else {
+  console.warn(
+    '⚠ Thiếu CLOUDINARY_* trong .env — giữ nguyên URL ảnh Unsplash. Điền key rồi chạy lại `pnpm prisma db seed` để đẩy ảnh lên CDN.',
+  );
+}
+
+const uploadedByPublicId = new Map<string, string>();
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
 
 const CATEGORIES = [
   { name: 'Áo thun', slug: 'ao-thun', gender: Gender.MALE, sortOrder: 1 },
@@ -156,6 +183,35 @@ function image(id: string, width = 1200) {
   return `${IMAGE_BASE}/${id}?w=${width}&q=80&fit=crop`;
 }
 
+/**
+ * When Cloudinary credentials are present the seed pushes each Unsplash image
+ * up and stores the CDN URL, so the catalog no longer hotlinks Unsplash.
+ * Without credentials it silently falls back to the original Unsplash URL.
+ */
+async function resolveImage(
+  remoteUrl: string,
+  publicId: string,
+): Promise<string> {
+  if (!cloudinaryReady) return remoteUrl;
+
+  const existing = uploadedByPublicId.get(publicId);
+  if (existing) return existing;
+
+  try {
+    const uploaded = await cloudinary.uploader.upload(remoteUrl, {
+      folder: 'ecom_dn/products',
+      resource_type: 'image',
+      public_id: publicId,
+      overwrite: true,
+    });
+    uploadedByPublicId.set(publicId, uploaded.secure_url);
+    return uploaded.secure_url;
+  } catch (error) {
+    console.warn(`  ! Không upload được ${publicId}:`, errorMessage(error));
+    return remoteUrl;
+  }
+}
+
 async function main() {
   const categoryBySlug = new Map<string, string>();
 
@@ -173,7 +229,14 @@ async function main() {
     if (!categoryId) throw new Error(`Missing category ${product.categorySlug}`);
 
     const slug = product.slug;
-    const thumbnail = image(product.image);
+    const thumbnail = await resolveImage(
+      image(product.image),
+      `${slug}-1`,
+    );
+    const galleryAlt = await resolveImage(
+      image(product.imageAlt),
+      `${slug}-2`,
+    );
 
     const existing = await prisma.product.findUnique({ where: { slug } });
     if (existing) {
@@ -185,7 +248,7 @@ async function main() {
       await prisma.productImage.createMany({
         data: [
           { productId: existing.id, url: thumbnail, sortOrder: 0 },
-          { productId: existing.id, url: image(product.imageAlt), sortOrder: 1 },
+          { productId: existing.id, url: galleryAlt, sortOrder: 1 },
         ],
       });
       continue;
@@ -210,7 +273,7 @@ async function main() {
         images: {
           create: [
             { url: thumbnail, sortOrder: 0 },
-            { url: image(product.imageAlt), sortOrder: 1 },
+            { url: galleryAlt, sortOrder: 1 },
           ],
         },
       },
