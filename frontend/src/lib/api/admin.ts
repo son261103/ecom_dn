@@ -1,42 +1,23 @@
-import { request } from './client';
-import type { UploadedImage } from '@/lib/types/upload';
-
 /**
- * Admin-only endpoints. Every call requires a Bearer token belonging to a
- * user with role ADMIN — the backend rejects anything else with 403.
+ * Admin-only API surface, deliberately kept out of `@/lib/api`.
+ *
+ *   import { adminProductsApi, adminOrdersApi } from '@/lib/api/admin';
+ *
+ * Every endpoint under /api/admin/* requires a Bearer token whose user has
+ * role ADMIN; the backend answers 401 without a token and 403 for a customer.
  */
-export const adminApi = {
-  images: {
-    status(token: string) {
-      return request<{ configured: boolean }>('/admin/upload/status', { token });
-    },
+export { adminCategoriesApi } from './admin-categories';
+export type { AdminCategoryFilters } from './admin-categories';
 
-    /** Content-Type stays unset so the browser can add the multipart boundary. */
-    upload(file: File, token: string) {
-      const form = new FormData();
-      form.append('file', file);
+export { adminProductsApi } from './admin-products';
+export type { AdminProductFilters, StockMode } from './admin-products';
 
-      return request<UploadedImage>('/admin/upload/image', {
-        method: 'POST',
-        token,
-        body: form,
-        isFormData: true,
-      });
-    },
+export { adminOrdersApi } from './admin-orders';
+export type { AdminOrderFilters } from './admin-orders';
 
-    uploadFromUrl(url: string, token: string) {
-      return request<UploadedImage>('/admin/upload/image-from-url', {
-        method: 'POST',
-        token,
-        body: JSON.stringify({ url }),
-      });
-    },
+export { adminUsersApi } from './admin-users';
+export type { AdminUserFilters } from './admin-users';
 
-    remove(publicId: string, token: string) {
-      return request<{ result: string }>(
-        `/admin/upload/${encodeURIComponent(publicId)}`,
-        { method: 'DELETE', token },
-      );
-    },
-  },
-};
+export { adminStatsApi } from './admin-stats';
+
+export { adminImagesApi } from './admin-images';

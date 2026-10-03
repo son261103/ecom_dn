@@ -18,3 +18,18 @@ export type {
 } from './orders';
 
 export type { UploadedImage } from './upload';
+
+export type {
+  AdminCategory,
+  AdminCategoryPayload,
+  AdminListParams,
+  AdminOrderListItem,
+  AdminProductDetail,
+  AdminProductListItem,
+  AdminProductPayload,
+  AdminStats,
+  AdminUserDetail,
+  AdminUserListItem,
+  AdminUserPayload,
+  VariantInput,
+} from './admin';

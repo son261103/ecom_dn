@@ -10,6 +10,20 @@ export class ApiError extends Error {
   }
 }
 
+/** Builds a query string, dropping empty values so `?page=` never appears. */
+export function toQuery(params: Record<string, unknown>): string {
+  const search = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') {
+      search.set(key, String(value));
+    }
+  }
+
+  const encoded = search.toString();
+  return encoded ? `?${encoded}` : '';
+}
+
 export interface RequestOptions extends Omit<RequestInit, 'headers'> {
   token?: string;
   /** Set for multipart bodies so the browser can add its own boundary. */

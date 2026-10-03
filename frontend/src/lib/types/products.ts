@@ -34,6 +34,8 @@ export interface Product {
   basePrice: number;
   thumbnail: string;
   isFeatured: boolean;
+  /** Always true in public responses; the admin list also returns hidden items. */
+  isActive: boolean;
   category: Category;
   variants: ProductVariant[];
   images: ProductImage[];

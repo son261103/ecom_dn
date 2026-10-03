@@ -113,6 +113,7 @@ pnpm dev                   # http://localhost:3000
 | `pnpm build` | backend | Build ra `dist/` |
 | `pnpm prisma studio` | backend | Giao diện xem DB |
 | `pnpm prisma db seed` | backend | Nạp lại dữ liệu mẫu |
+| `bash admin-api-test.sh` | backend | 83 kiểm thử API admin (cần backend đang chạy) |
 | `pnpm dev` | frontend | Dev server |
 | `pnpm build` | frontend | Production build |
 | `pnpm lint` | frontend | ESLint |
@@ -173,18 +174,52 @@ Token không hợp lệ (sai format, sai secret, thiếu scheme) đều trả 40
 | GET | `/orders` | Đơn của user hiện tại |
 | GET | `/orders/:id` | Chi tiết một đơn |
 
-### Upload (yêu cầu Bearer token + role `ADMIN`)
+### Admin (yêu cầu Bearer token + role `ADMIN`)
 
 Mọi route `/api/admin/*` nằm trong `AdminModule`. Auth đã bật global, nên controller chỉ thêm `RolesGuard([Role.ADMIN])` để giới hạn vai trò — token khách hàng nhận 403.
 
 | Method | Path | Mô tả |
 | --- | --- | --- |
+| GET | `/admin/stats` | Số liệu dashboard: doanh thu, đơn theo trạng thái, tồn kho thấp |
+| GET | `/admin/categories` | Danh sách + tìm kiếm + lọc theo giới tính |
+| POST | `/admin/categories` | Tạo danh mục (slug tự sinh từ tên) |
+| GET | `/admin/categories/:id` | Chi tiết một danh mục |
+| PATCH | `/admin/categories/:id` | Sửa danh mục |
+| DELETE | `/admin/categories/:id` | Xoá — chặn nếu còn sản phẩm |
+| GET | `/admin/products` | Danh sách + lọc `gender`, `categoryId`, `isActive`, `isFeatured`, `search` |
+| POST | `/admin/products` | Tạo sản phẩm kèm variants và images |
+| GET | `/admin/products/:id` | Chi tiết kèm số lượt đặt của từng variant |
+| PATCH | `/admin/products/:id` | Sửa; truyền `variants` sẽ thay cả bộ biến thể |
+| PATCH | `/admin/products/variants/:variantId/stock` | Điều chỉnh tồn kho (`SET` / `INCREASE` / `DECREASE`) |
+| DELETE | `/admin/products/:id` | Soft-delete nếu đã có trong đơn, xoá hẳn nếu chưa |
+| GET | `/admin/orders` | Danh sách + lọc `status`, tìm theo mã đơn / tên / SĐT |
+| GET | `/admin/orders/:id` | Chi tiết đơn kèm sản phẩm và khách hàng |
+| GET | `/admin/orders/:id/transitions` | Các trạng thái đơn có thể chuyển tới |
+| PATCH | `/admin/orders/:id/status` | Đổi trạng thái (huỷ sẽ trả lại tồn kho) |
+| PATCH | `/admin/orders/:id` | Sửa thông tin giao hàng |
+| DELETE | `/admin/orders/:id` | Xoá — chỉ khi đơn đã huỷ |
+| GET | `/admin/users` | Danh sách + lọc `role`, tìm theo tên / email / SĐT |
+| POST | `/admin/users` | Tạo tài khoản |
+| GET | `/admin/users/:id` | Chi tiết kèm 20 đơn gần nhất |
+| PATCH | `/admin/users/:id` | Sửa tên, SĐT, vai trò |
+| PATCH | `/admin/users/:id/password` | Đặt lại mật khẩu |
+| DELETE | `/admin/users/:id` | Xoá — chặn nếu có đơn, chặn tự xoá / hạ quyền mình |
 | GET | `/admin/upload/status` | Kiểm tra đã cấu hình Cloudinary chưa |
 | POST | `/admin/upload/image` | Upload file (multipart `file`), tối đa 5MB |
 | POST | `/admin/upload/image-from-url` | Lấy ảnh từ URL rồi đẩy lên Cloudinary |
 | DELETE | `/admin/upload/:publicId` | Xoá ảnh trên Cloudinary |
 
-Chỉ nhận `image/jpeg`, `image/png`, `image/webp`, `image/avif`. Giao diện quản lý ảnh: `/admin/images`.
+Giao diện quản trị ở `/admin`: tổng quan, sản phẩm, danh mục, đơn hàng, người dùng, ảnh.
+
+**Quy tắc nghiệp vụ đáng chú ý**
+
+- Sản phẩm từng xuất hiện trong đơn chỉ bị ẩn (soft delete), không xoá hẳn — để giữ lịch sử đơn.
+- Biến thể đã có trong đơn không thể xoá; đặt tồn kho về 0 thay thế.
+- Đơn chỉ chuyển trạng thái theo luồng hợp lệ: `PENDING → CONFIRMED → SHIPPING → DELIVERED`, huỷ được ở mọi bước trước khi giao. `DELIVERED` và `CANCELLED` là trạng thái cuối.
+- Huỷ đơn hoàn lại tồn kho trong cùng transaction.
+- Không thể hạ quyền, xoá chính mình, hoặc xoá quản trị viên cuối cùng.
+
+Chỉ nhận ảnh `image/jpeg`, `image/png`, `image/webp`, `image/avif`.
 
 ## Ảnh: Cloudinary
 
@@ -228,7 +263,14 @@ src/
 ├── categories/      danh mục theo giới tính
 ├── orders/          tạo đơn trong transaction, lịch sử đơn
 ├── admin/           endpoint chỉ dành cho ADMIN → /api/admin/*
+│   ├── stats/       số liệu dashboard
+│   ├── categories/  CRUD danh mục
+│   ├── products/    CRUD sản phẩm + variants + images
+│   ├── orders/      duyệt / đổi trạng thái / xoá đơn
+│   ├── users/       CRUD người dùng + đặt lại mật khẩu
 │   ├── images/      Cloudinary service + controller
+│   ├── shared.ts    paginate(), searchWhere()
+│   ├── utils/       slugify() bỏ dấu tiếng Việt
 │   └── admin.module.ts
 ```
 
@@ -251,23 +293,23 @@ src/
 │   ├── product/[slug]/    chi tiết + chọn màu/size
 │   ├── cart/              giỏ hàng + checkout
 │   ├── login|register/    auth
-│   ├── account/           profile + lịch sử đơn
-│   └── admin/images/      quản lý ảnh Cloudinary (chỉ ADMIN)
-├── components/
-│   ├── layout/            header, footer
-│   ├── product/           card, list view, filters, purchase panel
-│   ├── cart/              cart view, checkout form
-│   ├── auth/, account/
-│   ├── admin/             image uploader
+│   ├── admin/
+│   │   ├── images/          trang quản lý ảnh
+│   │   ├── admin-shell.tsx  sidebar + kiểm tra quyền
+│   │   ├── admin-dashboard.tsx
+│   │   ├── admin-*-page.tsx CRUD từng resource
+│   │   ├── hooks.ts         useAdminResource / useAdminAction
+│   │   └── ui.tsx           AdminHeader, AdminLoading, ConfirmButton
 │   └── providers/         CartProvider (giỏ hàng + session)
 ├── lib/
 │   ├── api/              chỉ chứa code gọi API, theo domain
-│   │   ├── client.ts     fetch wrapper + ApiError (Authorization, JSON, error)
+│   │   ├── client.ts     fetch wrapper + ApiError + toQuery
 │   │   ├── config.ts     API_URL
 │   │   ├── auth.ts       authApi
 │   │   ├── products.ts   productsApi, categoriesApi
 │   │   ├── orders.ts     ordersApi
-│   │   ├── admin.ts      adminApi.images — KHÔNG export từ index.ts
+│   │   ├── admin.ts      barrel của các module admin
+│   │   ├── admin-*.ts    adminCategories/products/orders/users/stats/images
 │   │   └── index.ts      barrel cho API công khai
 │   ├── types/            chỉ chứa model, theo domain
 │   │   ├── shared.ts     Gender, Role, Paginated

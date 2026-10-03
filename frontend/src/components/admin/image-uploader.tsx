@@ -9,31 +9,21 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { adminApi } from '@/lib/api/admin';
+import { adminImagesApi } from '@/lib/api/admin';
 import type { UploadedImage } from '@/lib/types/upload';
 
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
 const MAX_SIZE = 5 * 1024 * 1024;
 
 export function ImageUploader() {
-  const { token, user } = useCart();
+  const { token } = useCart();
   const inputRef = useRef<HTMLInputElement>(null);
   const [results, setResults] = useState<UploadedImage[]>([]);
   const [busy, setBusy] = useState(false);
   const [remoteUrl, setRemoteUrl] = useState('');
 
-  if (!token || !user) return null;
-
-  if (user.role !== 'ADMIN') {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-24 text-center">
-        <h1 className="text-2xl font-bold">Không có quyền truy cập</h1>
-        <p className="mt-2 text-muted-foreground">
-          Trang này chỉ dành cho quản trị viên.
-        </p>
-      </div>
-    );
-  }
+  // Access is gated by AdminShell in app/admin/layout.tsx.
+  if (!token) return null;
 
   async function handleFile(file: File) {
     if (!ACCEPTED.includes(file.type)) {
@@ -47,7 +37,7 @@ export function ImageUploader() {
 
     setBusy(true);
     try {
-      const uploaded = await adminApi.images.upload(file, token as string);
+      const uploaded = await adminImagesApi.upload(file, token as string);
       setResults((current) => [uploaded, ...current]);
       toast.success('Tải ảnh lên thành công');
     } catch (error) {
@@ -65,7 +55,7 @@ export function ImageUploader() {
 
     setBusy(true);
     try {
-      const uploaded = await adminApi.images.uploadFromUrl(remoteUrl.trim(), token as string);
+      const uploaded = await adminImagesApi.uploadFromUrl(remoteUrl.trim(), token as string);
       setResults((current) => [uploaded, ...current]);
       setRemoteUrl('');
       toast.success('Đã lấy ảnh từ URL');
@@ -80,7 +70,7 @@ export function ImageUploader() {
 
   async function handleDelete(publicId: string) {
     try {
-      await adminApi.images.remove(publicId, token as string);
+      await adminImagesApi.remove(publicId, token as string);
       setResults((current) => current.filter((r) => r.publicId !== publicId));
       toast.success('Đã xoá ảnh trên Cloudinary');
     } catch (error) {
