@@ -19,7 +19,7 @@ import {
   AdminToolbar,
   ConfirmButton,
 } from '@/components/admin/ui';
-import { HoverLift } from '@/components/admin/motion';
+import { HoverLift } from '@/components/motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';

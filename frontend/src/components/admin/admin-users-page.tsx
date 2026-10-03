@@ -12,7 +12,7 @@ import {
   AdminToolbar,
   ConfirmButton,
 } from '@/components/admin/ui';
-import { EASE_OUT } from '@/components/admin/motion';
+import { EASE_OUT } from '@/components/motion';
 import { motion } from 'motion/react';
 import { useCart } from '@/components/providers/cart-context';
 import { Badge } from '@/components/ui/badge';

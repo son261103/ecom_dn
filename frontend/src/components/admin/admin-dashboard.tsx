@@ -26,8 +26,8 @@ import {
   Reveal,
   Stagger,
   StaggerItem,
-} from '@/components/admin/motion';
-import { AnimatedNumber } from '@/components/admin/animated-number';
+} from '@/components/motion';
+import { AnimatedNumber } from '@/components/motion';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import type { AdminStats } from '@/lib/types/admin';

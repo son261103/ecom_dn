@@ -155,3 +155,27 @@
     @apply font-sans;
   }
 }
+
+/**
+ * Marquee dải chữ chạy vô hạn: track được render 2 lần liên tiếp nên dịch
+ * đúng -50% sẽ quay về điểm bắt đầu, tạo vòng lặp không giật.
+ */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

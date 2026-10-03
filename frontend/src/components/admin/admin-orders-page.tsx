@@ -16,7 +16,7 @@ import {
   AdminToolbar,
   ConfirmButton,
 } from '@/components/admin/ui';
-import { HoverLift } from '@/components/admin/motion';
+import { HoverLift } from '@/components/motion';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 import { Loader2, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { EASE_OUT, Stagger, StaggerItem } from '@/components/admin/motion';
+import { EASE_OUT, Stagger, StaggerItem } from '@/components/motion';
 
 /** Sticky toolbar so filters stay reachable on long admin lists. */
 export function AdminHeader({

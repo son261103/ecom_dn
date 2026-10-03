@@ -1,7 +1,18 @@
+import { SearchX } from 'lucide-react';
 import { ProductCard } from '@/components/product/product-card';
 import { Button } from '@/components/ui/button';
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty';
 import { ProductFilters } from '@/components/product/product-filters';
+import { ListingHero } from '@/components/product/listing-hero';
 import { Pagination } from '@/components/product/pagination';
+import { Stagger, StaggerItem } from '@/components/motion';
 import { linkTo } from '@/lib/base-ui';
 import { categoriesApi, productsApi } from '@/lib/api';
 import type { Gender } from '@/lib/types';
@@ -24,8 +35,10 @@ const ROUTE_TITLE: Record<GenderRoute, string> = {
 
 const FALLBACK = {
   items: [],
-  meta: { total: 0, page: 1, limit: 12, totalPages: 1 },
+  meta: { total: 0, page: 1, limit: 16, totalPages: 1 },
 };
+
+const PAGE_SIZE = 16;
 
 export async function ProductListView({
   route,
@@ -46,7 +59,7 @@ export async function ProductListView({
         category: searchParams.category,
         featured: featuredOnly,
         page,
-        limit: 12,
+        limit: PAGE_SIZE,
       })
       .catch(() => FALLBACK),
     categoriesApi.list(gender).catch(() => []),
@@ -57,54 +70,65 @@ export async function ProductListView({
   );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          {ROUTE_TITLE[route]}
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          {result.meta.total} sản phẩm
-          {activeCategory && ` · ${activeCategory.name}`}
-        </p>
-      </header>
+    <>
+      <ListingHero
+        route={route}
+        title={ROUTE_TITLE[route]}
+        total={result.meta.total}
+        activeCategory={activeCategory?.name}
+      />
 
-      <div className="grid gap-10 lg:grid-cols-[240px_1fr]">
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <ProductFilters
-            route={route}
-            categories={categories}
-            activeCategory={searchParams.category}
-          />
-        </aside>
-
-        <div>
-          {result.items.length === 0 ? (
-            <div className="grid place-items-center rounded-xl border border-dashed py-24 text-center">
-              <p className="font-medium">Không tìm thấy sản phẩm nào</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Thử chọn danh mục khác hoặc xem tất cả sản phẩm.
-              </p>
-              <Button variant="outline" className="mt-4" {...linkTo(basePath)}>
-                Xem tất cả
-              </Button>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-                {result.items.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-              <Pagination
-                page={result.meta.page}
-                totalPages={result.meta.totalPages}
-                basePath={basePath}
-                params={searchParams}
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+        <div className="grid gap-8 lg:grid-cols-[240px_1fr] lg:gap-10">
+          <aside className="lg:sticky lg:top-24 lg:self-start">
+            <div className="rounded-2xl border bg-card p-5">
+              <ProductFilters
+                route={route}
+                categories={categories}
+                activeCategory={searchParams.category}
               />
-            </>
-          )}
+            </div>
+          </aside>
+
+          <div>
+            {result.items.length === 0 ? (
+              <Empty className="border py-24">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <SearchX />
+                  </EmptyMedia>
+                  <EmptyTitle>Không tìm thấy sản phẩm nào</EmptyTitle>
+                  <EmptyDescription>
+                    Thử chọn danh mục khác hoặc xem tất cả sản phẩm trong danh
+                    mục này.
+                  </EmptyDescription>
+                </EmptyHeader>
+                <EmptyContent>
+                  <Button variant="outline" {...linkTo(basePath)}>
+                    Xem tất cả
+                  </Button>
+                </EmptyContent>
+              </Empty>
+            ) : (
+              <>
+                <Stagger className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
+                  {result.items.map((product) => (
+                    <StaggerItem key={product.id}>
+                      <ProductCard product={product} />
+                    </StaggerItem>
+                  ))}
+                </Stagger>
+                <Pagination
+                  page={result.meta.page}
+                  totalPages={result.meta.totalPages}
+                  basePath={basePath}
+                  params={searchParams}
+                />
+              </>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

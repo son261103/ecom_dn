@@ -21,7 +21,7 @@ import { useCart } from '@/components/providers/cart-context';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { EASE_OUT } from '@/components/admin/motion';
+import { EASE_OUT } from '@/components/motion';
 
 const NAV = [
   { href: '/admin', label: 'Tổng quan', icon: LayoutDashboard, exact: true },
