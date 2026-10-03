@@ -1,4 +1,4 @@
-import { API_URL } from './shared';
+import { API_URL } from './config';
 
 export class ApiError extends Error {
   constructor(

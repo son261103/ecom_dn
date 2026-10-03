@@ -4,7 +4,7 @@ import type {
   LoginPayload,
   RegisterPayload,
   User,
-} from './auth.types';
+} from '@/lib/types/auth';
 
 export const authApi = {
   register(payload: RegisterPayload) {

@@ -1,5 +1,5 @@
 import { request } from './client';
-import type { CheckoutPayload, Order } from './orders.types';
+import type { CheckoutPayload, Order } from '@/lib/types/orders';
 
 export const ordersApi = {
   create(payload: CheckoutPayload, token: string) {

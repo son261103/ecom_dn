@@ -1,10 +1,10 @@
 import { request } from './client';
-import type { Gender } from './shared';
+import type { Gender } from '@/lib/types/shared';
 import type {
   Category,
   Product,
   ProductListResponse,
-} from './products.types';
+} from '@/lib/types/products';
 
 export interface ProductFilters {
   gender?: Gender;

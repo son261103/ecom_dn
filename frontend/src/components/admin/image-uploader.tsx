@@ -9,7 +9,8 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { uploadApi, type UploadedImage } from '@/lib/api';
+import { adminApi } from '@/lib/api/admin';
+import type { UploadedImage } from '@/lib/types/upload';
 
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -46,7 +47,7 @@ export function ImageUploader() {
 
     setBusy(true);
     try {
-      const uploaded = await uploadApi.image(file, token as string);
+      const uploaded = await adminApi.images.upload(file, token as string);
       setResults((current) => [uploaded, ...current]);
       toast.success('Tải ảnh lên thành công');
     } catch (error) {
@@ -64,7 +65,7 @@ export function ImageUploader() {
 
     setBusy(true);
     try {
-      const uploaded = await uploadApi.fromUrl(remoteUrl.trim(), token as string);
+      const uploaded = await adminApi.images.uploadFromUrl(remoteUrl.trim(), token as string);
       setResults((current) => [uploaded, ...current]);
       setRemoteUrl('');
       toast.success('Đã lấy ảnh từ URL');
@@ -79,7 +80,7 @@ export function ImageUploader() {
 
   async function handleDelete(publicId: string) {
     try {
-      await uploadApi.remove(publicId, token as string);
+      await adminApi.images.remove(publicId, token as string);
       setResults((current) => current.filter((r) => r.publicId !== publicId));
       toast.success('Đã xoá ảnh trên Cloudinary');
     } catch (error) {

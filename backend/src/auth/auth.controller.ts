@@ -2,7 +2,7 @@ import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { AuthService } from './auth.service.js';
 import { LoginDto, RegisterDto } from './dto/auth.dto.js';
-import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
 import type { RequestUser } from './types.js';
 
 @Controller('auth')

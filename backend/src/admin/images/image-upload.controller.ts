@@ -11,16 +11,26 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { AdminGuard } from '../auth/guards/admin.guard.js';
+import { Role } from '../../generated/prisma/enums.js';
+import { JwtAuthGuard } from '../../guards/jwt-auth.guard.js';
+import { RolesGuard } from '../../guards/roles.guard.js';
 import { CloudinaryService } from './cloudinary.service.js';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
+const ALLOWED_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/avif',
+];
 
-@UseGuards(JwtAuthGuard, AdminGuard)
-@Controller('upload')
-export class UploadController {
+/**
+ * Admin-only image management. Lives under /api/admin/upload and is guarded by
+ * JwtAuthGuard + RolesGuard([ADMIN]), so every route requires an admin token.
+ */
+@UseGuards(JwtAuthGuard, new RolesGuard([Role.ADMIN]))
+@Controller('admin/upload')
+export class AdminImageUploadController {
   constructor(private readonly cloudinary: CloudinaryService) {}
 
   @Get('status')
@@ -55,9 +65,11 @@ export class UploadController {
   }
 
   @Post('image-from-url')
-  async uploadFromUrl(@Body() body: { url?: string }) {
+  uploadFromUrl(@Body() body: { url?: string }) {
     if (!body.url) throw new BadRequestException('Thiếu url ảnh');
-    return this.cloudinary.uploadRemote(body.url, { folder: 'ecom_dn/products' });
+    return this.cloudinary.uploadRemote(body.url, {
+      folder: 'ecom_dn/products',
+    });
   }
 
   @Delete(':publicId')

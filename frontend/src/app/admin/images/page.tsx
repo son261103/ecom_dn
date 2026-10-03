@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { ImageUploader } from '@/components/upload/image-uploader';
+import { ImageUploader } from '@/components/admin/image-uploader';
 
 export const metadata: Metadata = { title: 'Quản lý ảnh' };
 

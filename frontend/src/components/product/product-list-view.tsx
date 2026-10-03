@@ -4,7 +4,7 @@ import { ProductFilters } from '@/components/product/product-filters';
 import { Pagination } from '@/components/product/pagination';
 import { linkTo } from '@/lib/base-ui';
 import { categoriesApi, productsApi } from '@/lib/api';
-import type { Gender } from '@/lib/api';
+import type { Gender } from '@/lib/types';
 
 export type GenderRoute = 'nam' | 'nu' | 'unisex' | 'featured';
 

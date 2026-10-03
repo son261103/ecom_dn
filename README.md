@@ -146,10 +146,12 @@ Tất cả route có prefix `/api`.
 ### Upload (yêu cầu Bearer token + role `ADMIN`)
 | Method | Path | Mô tả |
 | --- | --- | --- |
-| GET | `/upload/status` | Kiểm tra đã cấu hình Cloudinary chưa |
-| POST | `/upload/image` | Upload file (multipart `file`), tối đa 5MB |
-| POST | `/upload/image-from-url` | Lấy ảnh từ URL rồi đẩy lên Cloudinary |
-| DELETE | `/upload/:publicId` | Xoá ảnh trên Cloudinary |
+| GET | `/admin/upload/status` | Kiểm tra đã cấu hình Cloudinary chưa |
+| POST | `/admin/upload/image` | Upload file (multipart `file`), tối đa 5MB |
+| POST | `/admin/upload/image-from-url` | Lấy ảnh từ URL rồi đẩy lên Cloudinary |
+| DELETE | `/admin/upload/:publicId` | Xoá ảnh trên Cloudinary |
+
+Mọi endpoint `/api/admin/*` nằm trong `AdminModule`, bảo vệ bởi `JwtAuthGuard` + `RolesGuard([Role.ADMIN])` — token của khách hàng sẽ nhận 403.
 
 Chỉ nhận `image/jpeg`, `image/png`, `image/webp`, `image/avif`. Giao diện quản lý ảnh: `/admin/images`.
 
@@ -188,11 +190,14 @@ docker exec -it ecom_dn_pg psql -U ecom -d ecom_dn \
 ```
 src/
 ├── prisma/          PrismaService (driver adapter @prisma/adapter-pg) + module
-├── auth/            register/login, JWT strategy, guard, DTO
+├── auth/            register/login, JWT strategy, DTO
+├── guards/          JwtAuthGuard, RolesGuard (dùng chung cho mọi module)
 ├── products/        list (filter + phân trang), detail, featured
 ├── categories/      danh mục theo giới tính
 ├── orders/          tạo đơn trong transaction, lịch sử đơn
-├── upload/          Cloudinary service + endpoint (chỉ ADMIN)
+├── admin/           endpoint chỉ dành cho ADMIN → /api/admin/*
+│   ├── images/      Cloudinary service + controller
+│   └── admin.module.ts
 └── common/          decorator CurrentUser
 ```
 
@@ -220,33 +225,56 @@ src/
 │   ├── product/           card, list view, filters, purchase panel
 │   ├── cart/              cart view, checkout form
 │   ├── auth/, account/
-│   ├── upload/            image uploader
+│   ├── admin/             image uploader
 │   └── providers/         CartProvider (giỏ hàng + session)
 ├── lib/
-│   ├── api/              lớp API theo domain
+│   ├── api/              chỉ chứa code gọi API, theo domain
 │   │   ├── client.ts     fetch wrapper + ApiError (Authorization, JSON, error)
-│   │   ├── shared.ts     API_URL, Gender, Role, Paginated
+│   │   ├── config.ts     API_URL
 │   │   ├── auth.ts       authApi
 │   │   ├── products.ts   productsApi, categoriesApi
 │   │   ├── orders.ts     ordersApi
-│   │   ├── upload.ts     uploadApi (Cloudinary)
-│   │   ├── *.types.ts    type theo domain
-│   │   └── index.ts      barrel export
+│   │   ├── admin.ts      adminApi.images — KHÔNG export từ index.ts
+│   │   └── index.ts      barrel cho API công khai
+│   ├── types/            chỉ chứa model, theo domain
+│   │   ├── shared.ts     Gender, Role, Paginated
+│   │   ├── products.ts   Product, Category, ProductVariant, …
+│   │   ├── auth.ts       User, AuthResponse, payload
+│   │   ├── orders.ts     Order, OrderItem, OrderStatus
+│   │   ├── upload.ts     UploadedImage
+│   │   └── index.ts      barrel export type
 │   ├── base-ui.tsx       helper `linkTo` cho Base UI
 │   ├── format.ts         formatPrice, GENDER_LABEL
 │   └── utils.ts          cn()
 └── components/ui/         shadcn/ui + component từ ReUI registry
 ```
 
-### Vì sao tách API theo domain
+### Vì sao tách `api/` và `types/` riêng
 
-`lib/api.ts` ban đầu gộp mọi endpoint vào một file — mỗi thêm API mới là file dài thêm và mọi import phải chỉ vào cùng một chỗ. Nay mỗi domain nằm trong file riêng và `index.ts` re-export, nên call site vẫn ngắn:
+Trước đó mỗi domain vừa có code vừa có model nằm cùng file (`auth.ts` + `auth.types.ts` xen kẽ), và `shared.ts` lại chứa cả hằng số `API_URL` lẫn type — đọc vào không biết đâu là gì. Nay:
+
+- `lib/api/` — **chỉ code**: gọi endpoint, xử lý token
+- `lib/types/` — **chỉ model**: mô tả hình dạng dữ liệu
+- `api/config.ts` — hằng số cấu hình, tách riêng khỏi type
+
+Import trông rõ ràng:
 
 ```ts
-import { productsApi, categoriesApi, type Product } from '@/lib/api';
+import { productsApi, categoriesApi } from '@/lib/api';   // code
+import type { Product, Gender } from '@/lib/types';        // model
 ```
 
-Thêm endpoint mới chỉ cần sửa đúng file của domain đó, không đụng domain khác. `client.ts` giữ phần lặp lại (base URL, header Bearer, parse lỗi) ở một chỗ duy nhất.
+### Vì sao `adminApi` không nằm trong barrel
+
+Endpoint admin được giữ riêng ở `@/lib/api/admin` và **cố ý không export** từ `lib/api/index.ts`:
+
+```ts
+import { adminApi } from '@/lib/api/admin';   // phải import tường minh
+```
+
+Nhờ vậy lướt tìm kiếm trong project sẽ cho thấy chính xác chỗ nào gọi API admin, và trang khách không vô tình gọi nhầm. Phía backend cũng tương ứng: mọi route admin nằm dưới `/api/admin/*` trong `AdminModule`.
+
+Thêm endpoint mới chỉ cần sửa đúng file của domain đó, không đụng domain khác.
 
 ## Ghi chú về shadcn/ui + ReUI
 

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { formatPrice, GENDER_LABEL } from '@/lib/format';
-import type { Product } from '@/lib/api';
+import type { Product } from '@/lib/types';
 
 export function ProductPurchasePanel({ product }: { product: Product }) {
   const { addItem } = useCart();

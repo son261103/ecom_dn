@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { formatPrice, GENDER_LABEL } from '@/lib/format';
-import type { Product } from '@/lib/api';
+import type { Product } from '@/lib/types';
 
 export function ProductCard({ product }: { product: Product }) {
   const colors = [...new Set(product.variants.map((v) => v.color))];
