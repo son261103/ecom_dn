@@ -5,7 +5,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react';
-import type { User } from '@/lib/types';
+import type { User } from '@/lib/api';
 import { CartContext, type CartItem } from './cart-context';
 
 const CART_KEY = 'dn_cart';

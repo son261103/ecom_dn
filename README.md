@@ -46,13 +46,39 @@ Các package còn lại đã ở bản mới nhất: NestJS 12, Next.js 16.3, Re
 
 - Node.js 20+ (đã test với 24)
 - pnpm 10+
-- Docker (để chạy PostgreSQL)
 
-## Chạy lần đầu
+## Database: Aiven Cloud
 
-### 1. Database
+Dự án dùng **Aiven Cloud PostgreSQL**. Lấy connection string ở **Aiven Console → Service → Connect → Connection parameters**, dạng:
 
-Container `ecom_dn_pg` chạy PostgreSQL 18 ở **port 5433** (port 5432 đã bị container khác chiếm):
+```
+postgresql://USER:PASSWORD@PROJECT-REF.aivencloud.com:PORT/defaultdbname?sslmode=require
+```
+
+`sslmode=require` là bắt buộc — Aiven chỉ nhận kết nối có mã hoá TLS.
+
+Dán vào `backend/.env`:
+
+```
+DATABASE_URL="postgresql://USER:PASSWORD@PROJECT-REF.aivencloud.com:PORT/defaultdbname?sslmode=require"
+```
+
+Rồi tạo bảng và nạp dữ liệu:
+
+```bash
+cd backend
+pnpm install
+cp .env.example .env        # điền DATABASE_URL + JWT_SECRET
+pnpm prisma migrate deploy  # áp dụng migration đã có sẵn
+pnpm prisma db seed         # nạp 9 sản phẩm + 9 danh mục + 144 biến thể
+pnpm start:dev              # http://localhost:3005/api
+```
+
+`PrismaService` giới hạn pool ở 5 kết nối (`max: 5`) để không vượt giới hạn của Aiven free tier.
+
+### Chạy Postgres local (không dùng Aiven)
+
+Khi phát triển offline có thể dùng container local:
 
 ```bash
 docker run -d --name ecom_dn_pg \
@@ -63,22 +89,13 @@ docker run -d --name ecom_dn_pg \
   postgres:18-alpine
 ```
 
-Nếu container đã tồn tại:
+Rồi đổi `DATABASE_URL` trong `backend/.env` thành:
 
-```bash
-docker start ecom_dn_pg
+```
+DATABASE_URL="postgresql://ecom:ecom@localhost:5433/ecom_dn?schema=public"
 ```
 
-### 2. Backend
-
-```bash
-cd backend
-pnpm install
-cp .env.example .env        # rồi sửa JWT_SECRET thành chuỗi ngẫu nhiên dài
-pnpm prisma migrate dev     # tạo bảng
-pnpm prisma db seed         # nạp 9 sản phẩm + 9 danh mục + 144 biến thể
-pnpm start:dev              # http://localhost:3005/api
-```
+Port 5433 vì container `postgres_container` của project khác đang chiếm 5432 trên máy này.
 
 ### 3. Frontend
 
@@ -206,12 +223,30 @@ src/
 │   ├── upload/            image uploader
 │   └── providers/         CartProvider (giỏ hàng + session)
 ├── lib/
-│   ├── api.ts             fetch wrapper + ApiError
-│   ├── types.ts           type dùng chung với API
-│   ├── base-ui.tsx        helper `linkTo` cho Base UI
-│   └── format.ts          formatPrice, GENDER_LABEL
+│   ├── api/              lớp API theo domain
+│   │   ├── client.ts     fetch wrapper + ApiError (Authorization, JSON, error)
+│   │   ├── shared.ts     API_URL, Gender, Role, Paginated
+│   │   ├── auth.ts       authApi
+│   │   ├── products.ts   productsApi, categoriesApi
+│   │   ├── orders.ts     ordersApi
+│   │   ├── upload.ts     uploadApi (Cloudinary)
+│   │   ├── *.types.ts    type theo domain
+│   │   └── index.ts      barrel export
+│   ├── base-ui.tsx       helper `linkTo` cho Base UI
+│   ├── format.ts         formatPrice, GENDER_LABEL
+│   └── utils.ts          cn()
 └── components/ui/         shadcn/ui + component từ ReUI registry
 ```
+
+### Vì sao tách API theo domain
+
+`lib/api.ts` ban đầu gộp mọi endpoint vào một file — mỗi thêm API mới là file dài thêm và mọi import phải chỉ vào cùng một chỗ. Nay mỗi domain nằm trong file riêng và `index.ts` re-export, nên call site vẫn ngắn:
+
+```ts
+import { productsApi, categoriesApi, type Product } from '@/lib/api';
+```
+
+Thêm endpoint mới chỉ cần sửa đúng file của domain đó, không đụng domain khác. `client.ts` giữ phần lặp lại (base URL, header Bearer, parse lỗi) ở một chỗ duy nhất.
 
 ## Ghi chú về shadcn/ui + ReUI
 

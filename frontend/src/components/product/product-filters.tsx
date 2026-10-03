@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import type { Category } from '@/lib/types';
+import type { Category } from '@/lib/api';
 import type { GenderRoute } from './product-list-view';
 
 const ROUTE_TABS: { route: GenderRoute; label: string }[] = [

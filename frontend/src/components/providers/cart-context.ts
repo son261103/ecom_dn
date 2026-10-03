@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext } from 'react';
-import type { User } from '@/lib/types';
+import type { User } from '@/lib/api';
 
 export interface CartItem {
   variantId: string;

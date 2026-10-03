@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatPrice } from '@/lib/format';
 import { ordersApi } from '@/lib/api';
-import type { Order } from '@/lib/types';
+import type { Order } from '@/lib/api';
 
 const STATUS_LABEL: Record<Order['status'], string> = {
   PENDING: 'Chờ xác nhận',

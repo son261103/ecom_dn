@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ArrowRight, PackageCheck, RefreshCw, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { productsApi } from '@/lib/api';
-import type { Product } from '@/lib/types';
+import type { Product } from '@/lib/api';
 import { ProductCard } from '@/components/product/product-card';
 import { linkTo } from '@/lib/base-ui';
 

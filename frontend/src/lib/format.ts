@@ -1,4 +1,4 @@
-import type { Gender } from '@/lib/types';
+import type { Gender } from '@/lib/api';
 
 export function formatPrice(value: number) {
   return new Intl.NumberFormat('vi-VN', {

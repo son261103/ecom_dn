@@ -8,9 +8,18 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
+    // Read inside the constructor, not at module scope: the env file is loaded
+    // by ConfigModule during bootstrap, and a module-level read can capture
+    // an undefined DATABASE_URL. On Aiven the string must carry
+    // ?sslmode=require since the service only accepts TLS.
+    const connectionString = process.env.DATABASE_URL as string;
+
     super({
       adapter: new PrismaPg({
-        connectionString: process.env.DATABASE_URL as string,
+        connectionString,
+        max: 5,
+        idleTimeoutMillis: 30_000,
+        connectionTimeoutMillis: 15_000,
       }),
     });
   }
