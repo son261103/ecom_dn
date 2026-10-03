@@ -1,11 +1,10 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { CurrentUser } from '../common/decorators/current-user.decorator.js';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { CurrentUser } from '../decorators/current-user.decorator.js';
 import type { RequestUser } from '../auth/types.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
 import { OrdersService } from './orders.service.js';
 
-@UseGuards(JwtAuthGuard)
+/** Orders belong to the signed-in customer; the global guard supplies the token. */
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}

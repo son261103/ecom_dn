@@ -1,7 +1,10 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Public } from '../decorators/public.decorator.js';
 import { GetProductsQueryDto } from './dto/get-products-query.dto.js';
 import { ProductsService } from './products.service.js';
 
+/** Browsing the catalog does not require an account. */
+@Public()
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}

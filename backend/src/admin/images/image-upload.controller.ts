@@ -12,7 +12,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Role } from '../../generated/prisma/enums.js';
-import { JwtAuthGuard } from '../../guards/jwt-auth.guard.js';
 import { RolesGuard } from '../../guards/roles.guard.js';
 import { CloudinaryService } from './cloudinary.service.js';
 
@@ -25,10 +24,10 @@ const ALLOWED_MIME_TYPES = [
 ];
 
 /**
- * Admin-only image management. Lives under /api/admin/upload and is guarded by
- * JwtAuthGuard + RolesGuard([ADMIN]), so every route requires an admin token.
+ * Admin-only image management, mounted at /api/admin/upload. The global
+ * JwtAuthGuard already requires a valid token; RolesGuard narrows it to ADMIN.
  */
-@UseGuards(JwtAuthGuard, new RolesGuard([Role.ADMIN]))
+@UseGuards(new RolesGuard([Role.ADMIN]))
 @Controller('admin/upload')
 export class AdminImageUploadController {
   constructor(private readonly cloudinary: CloudinaryService) {}

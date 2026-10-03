@@ -121,14 +121,44 @@ pnpm dev                   # http://localhost:3000
 
 Tất cả route có prefix `/api`.
 
+### Xác thực
+
+**Auth bật mặc định toàn cục.** `JwtAuthGuard` được đăng ký bằng `APP_GUARD` trong `AuthModule`, nên controller mới tạo ra là đã có bảo vệ — không thể quên. Endpoint công khai phải khai báo tường minh bằng `@Public()`:
+
+```ts
+@Public()
+@Controller('products')
+export class ProductsController { ... }
+```
+
+Trạng thái hiện tại:
+
+| Phạm vi | Auth |
+| --- | --- |
+| `/auth/register`, `/auth/login` | `@Public()` |
+| `/products*`, `/categories` | `@Public()` (đặt ở cấp controller) |
+| `/auth/me`, `/orders*` | Mặc định — cần Bearer token |
+| `/api/admin/*` | Mặc định + `RolesGuard([Role.ADMIN])` |
+
+Ma trận kiểm tra:
+
+| Endpoint | Không token | Khách hàng | Admin |
+| --- | --- | --- | --- |
+| `GET /products`, `/categories` | 200 | 200 | 200 |
+| `GET /auth/me` | 401 | 200 | 200 |
+| `GET`/`POST /orders` | 401 | 200 | 200 |
+| `GET /admin/upload/status` | 401 | 403 | 200 |
+
+Token không hợp lệ (sai format, sai secret, thiếu scheme) đều trả 401 trên route protected và bị bỏ qua trên route `@Public()`.
+
 ### Auth
 | Method | Path | Auth | Mô tả |
 | --- | --- | --- | --- |
-| POST | `/auth/register` | – | Đăng ký, trả `accessToken` |
-| POST | `/auth/login` | – | Đăng nhập, trả `accessToken` |
+| POST | `/auth/register` | công khai | Đăng ký, trả `accessToken` |
+| POST | `/auth/login` | công khai | Đăng nhập, trả `accessToken` |
 | GET | `/auth/me` | Bearer | Thông tin user hiện tại |
 
-### Catalog
+### Catalog (công khai)
 | Method | Path | Mô tả |
 | --- | --- | --- |
 | GET | `/products` | Phân trang, lọc theo `gender`, `category`, `search`, `featured` |
@@ -144,14 +174,15 @@ Tất cả route có prefix `/api`.
 | GET | `/orders/:id` | Chi tiết một đơn |
 
 ### Upload (yêu cầu Bearer token + role `ADMIN`)
+
+Mọi route `/api/admin/*` nằm trong `AdminModule`. Auth đã bật global, nên controller chỉ thêm `RolesGuard([Role.ADMIN])` để giới hạn vai trò — token khách hàng nhận 403.
+
 | Method | Path | Mô tả |
 | --- | --- | --- |
 | GET | `/admin/upload/status` | Kiểm tra đã cấu hình Cloudinary chưa |
 | POST | `/admin/upload/image` | Upload file (multipart `file`), tối đa 5MB |
 | POST | `/admin/upload/image-from-url` | Lấy ảnh từ URL rồi đẩy lên Cloudinary |
 | DELETE | `/admin/upload/:publicId` | Xoá ảnh trên Cloudinary |
-
-Mọi endpoint `/api/admin/*` nằm trong `AdminModule`, bảo vệ bởi `JwtAuthGuard` + `RolesGuard([Role.ADMIN])` — token của khách hàng sẽ nhận 403.
 
 Chỉ nhận `image/jpeg`, `image/png`, `image/webp`, `image/avif`. Giao diện quản lý ảnh: `/admin/images`.
 
@@ -190,16 +221,18 @@ docker exec -it ecom_dn_pg psql -U ecom -d ecom_dn \
 ```
 src/
 ├── prisma/          PrismaService (driver adapter @prisma/adapter-pg) + module
-├── auth/            register/login, JWT strategy, DTO
-├── guards/          JwtAuthGuard, RolesGuard (dùng chung cho mọi module)
+├── auth/            register/login, JWT strategy, DTO + đăng ký APP_GUARD
+├── guards/          JwtAuthGuard (global), RolesGuard (theo role)
+├── decorators/      @Public, @CurrentUser
 ├── products/        list (filter + phân trang), detail, featured
 ├── categories/      danh mục theo giới tính
 ├── orders/          tạo đơn trong transaction, lịch sử đơn
 ├── admin/           endpoint chỉ dành cho ADMIN → /api/admin/*
 │   ├── images/      Cloudinary service + controller
 │   └── admin.module.ts
-└── common/          decorator CurrentUser
 ```
+
+**Quy ước auth:** route mới mặc định đã có bảo vệ. Muốn mở công khai thì thêm `@Public()`. Muốn giới hạn theo vai trò thì thêm `@UseGuards(new RolesGuard([Role.ADMIN]))` — không cần khai báo `JwtAuthGuard` vì nó đã chạy global.
 
 Prisma 7 không còn `url` trong `schema.prisma` — connection string nằm ở `prisma.config.ts`, và client cần driver adapter:
 
