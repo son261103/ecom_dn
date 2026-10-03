@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+.env
+.env.local
+.env.*.local
+
+# Prisma generated client (regenerate with `pnpm prisma generate`)
+src/generated/
+
+*.log
+.DS_Store
+.vscode/
+.idea/

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(node -v; npm -v; pnpm -v 2>/dev/null; git --version; pwd; ls -la)"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  }
+}
