@@ -29,7 +29,7 @@ Frontend chạy **TypeScript 7.0.2** (bản native Go, nhanh hơn 8–12×) cho 
 
 Cách này là alias chính thức từ [announcing-typescript-7-0](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-60) — `npx tsc` dùng TS 7, còn linter import `typescript` sẽ nhận API của TS 6.
 
-Các package còn lại đã ở bản mới nhất: NestJS 12, Next.js 16.3, React 19.3, Tailwind v4, shadcn/ui 4.21, ReUI, Vitest 5, oxlint, Prettier 3.
+Các package còn lại đã ở bản mới nhất: NestJS 12, Next.js 16.3, React 19.3, Tailwind v4, shadcn/ui 4.21, ReUI, motion 13.5, Vitest 5, oxlint, Prettier 3.
 
 ## Phân tách Nam / Nữ
 
@@ -284,45 +284,88 @@ new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 
 ## Cấu trúc frontend
 
+`src/app` chia bằng **route group** để cửa hàng và khu quản trị có layout riêng:
+
 ```
 src/
 ├── app/
-│   ├── page.tsx           trang chủ (hero Nam/Nữ + sản phẩm nổi bật)
-│   ├── nam|nu|unisex|     route danh sách, dùng chung ProductListView
-│   ├── featured/
-│   ├── product/[slug]/    chi tiết + chọn màu/size
-│   ├── cart/              giỏ hàng + checkout
-│   ├── login|register/    auth
+│   ├── layout.tsx            chỉ html/body + CartProvider + Toaster
+│   ├── (storefront)/         cửa hàng: có header + footer
+│   │   ├── layout.tsx
+│   │   ├── page.tsx          trang chủ (hero Nam/Nữ + sản phẩm nổi bật)
+│   │   ├── nam|nu|unisex|    danh sách, dùng chung ProductListView
+│   │   ├── featured/
+│   │   ├── product/[slug]/   chi tiết + chọn màu/size
+│   │   ├── cart/             giỏ hàng + checkout
+│   │   ├── login|register/   auth
+│   │   └── account/          profile + lịch sử đơn
+│   └── (admin)/admin/        quản trị: full-width, KHÔNG header/footer
+│       ├── layout.tsx        → AdminShell
+│       ├── page.tsx          tổng quan
+│       ├── products/ categories/ orders/ users/ images/
+├── components/
+│   ├── layout/               header, footer (chỉ dùng ở storefront)
+│   ├── product/ cart/ auth/ account/
+│   ├── providers/            CartProvider (giỏ hàng + session)
 │   ├── admin/
-│   │   ├── images/          trang quản lý ảnh
-│   │   ├── admin-shell.tsx  sidebar + kiểm tra quyền
+│   │   ├── admin-shell.tsx   sidebar cố định + drawer mobile + scroll progress
 │   │   ├── admin-dashboard.tsx
-│   │   ├── admin-*-page.tsx CRUD từng resource
-│   │   ├── hooks.ts         useAdminResource / useAdminAction
-│   │   └── ui.tsx           AdminHeader, AdminLoading, ConfirmButton
-│   └── providers/         CartProvider (giỏ hàng + session)
-├── lib/
-│   ├── api/              chỉ chứa code gọi API, theo domain
-│   │   ├── client.ts     fetch wrapper + ApiError + toQuery
-│   │   ├── config.ts     API_URL
-│   │   ├── auth.ts       authApi
-│   │   ├── products.ts   productsApi, categoriesApi
-│   │   ├── orders.ts     ordersApi
-│   │   ├── admin.ts      barrel của các module admin
-│   │   ├── admin-*.ts    adminCategories/products/orders/users/stats/images
-│   │   └── index.ts      barrel cho API công khai
-│   ├── types/            chỉ chứa model, theo domain
-│   │   ├── shared.ts     Gender, Role, Paginated
-│   │   ├── products.ts   Product, Category, ProductVariant, …
-│   │   ├── auth.ts       User, AuthResponse, payload
-│   │   ├── orders.ts     Order, OrderItem, OrderStatus
-│   │   ├── upload.ts     UploadedImage
-│   │   └── index.ts      barrel export type
-│   ├── base-ui.tsx       helper `linkTo` cho Base UI
-│   ├── format.ts         formatPrice, GENDER_LABEL
-│   └── utils.ts          cn()
-└── components/ui/         shadcn/ui + component từ ReUI registry
+│   │   ├── admin-*-page.tsx  CRUD từng resource
+│   │   ├── motion.tsx        Stagger, Reveal, HoverLift, PageTransition
+│   │   ├── animated-number.tsx
+│   │   ├── hooks.ts          useAdminResource / useAdminAction
+│   │   └── ui.tsx            AdminHeader, AdminToolbar, AdminList, ConfirmButton
+│   └── ui/                   shadcn/ui + component từ ReUI registry
+└── lib/
+    ├── api/              chỉ chứa code gọi API, theo domain
+    │   ├── client.ts     fetch wrapper + ApiError + toQuery
+    │   ├── config.ts     API_URL
+    │   ├── auth.ts       authApi
+    │   ├── products.ts   productsApi, categoriesApi
+    │   ├── orders.ts     ordersApi
+    │   ├── admin.ts      barrel của các module admin
+    │   ├── admin-*.ts    adminCategories/products/orders/users/stats/images
+    │   └── index.ts      barrel cho API công khai
+    ├── types/            chỉ chứa model, theo domain
+    │   ├── shared.ts     Gender, Role, Paginated
+    │   ├── products.ts   Product, Category, ProductVariant, …
+    │   ├── auth.ts       User, AuthResponse, payload
+    │   ├── orders.ts     Order, OrderItem, OrderStatus
+    │   ├── admin.ts      AdminStats, AdminProduct*, AdminOrder*, AdminUser*
+    │   ├── upload.ts     UploadedImage
+    │   └── index.ts      barrel export type
+    ├── base-ui.tsx       helper `linkTo` cho Base UI
+    ├── format.ts         formatPrice, GENDER_LABEL
+    └── utils.ts          cn()
 ```
+
+### Vì sao dùng route group
+
+App Router **không cho nested layout thoát khỏi layout cha**, nên admin từng bị bọc trong `SiteHeader` + `SiteFooter` của cửa hàng. Tách `(storefront)` và `(admin)` thành hai nhánh độc lập:
+
+- `(storefront)/layout.tsx` — header + nội dung + footer
+- `(admin)/admin/layout.tsx` — chỉ `AdminShell`, trải hết chiều ngang
+
+Cả hai cùng kế thừa `app/layout.tsx` (chỉ có `<html>`, `<body>`, `CartProvider`), nên session và toast vẫn dùng chung.
+
+## Motion & hiệu ứng scroll (khu quản trị)
+
+Dùng [`motion`](https://motion.dev) (React 14) — `motion/react`, cùng import như ReUI dùng.
+
+| Hiệu ứng | Ở đâu |
+| --- | --- |
+| Scroll progress bar | Thanh 2px trên cùng, scale theo tỉ lệ cuộn |
+| Chuyển trang | `AnimatePresence` mời + trượt nhẹ theo `pathname` |
+| Sidebar active | `layoutId` trượt pill nền giữa các mục |
+| Drawer mobile | Trượt vào từ trái + overlay mờ dần |
+| Stagger list | Card/bảng hiện lần lượt khi vào trang |
+| Reveal on scroll | Khối dưới fold mờ dần khi cuộn tới (`once: true`) |
+| Đếm số | `AnimatedNumber` chạy từ 0 tới giá trị thật |
+| Thanh tiến độ | Scale từ 0 theo tỉ lệ |
+
+Tất cả hiệu ứng đều tôn trọng `prefers-reduced-motion` — khi người dùng tắt animation, mọy thứ hiện tại luôn.
+
+Thêm hiệu ứng cho admin mới: dùng các component trong `components/admin/motion.tsx` (`Stagger`, `StaggerItem`, `Reveal`, `HoverLift`, `PageTransition`) thay vì tự viết `motion.*` mỗi chỗ.
 
 ### Vì sao tách `api/` và `types/` riêng
 

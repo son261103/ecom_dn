@@ -13,9 +13,13 @@ import {
   AdminEmpty,
   AdminError,
   AdminHeader,
+  AdminList,
+  AdminListItem,
   AdminLoading,
+  AdminToolbar,
   ConfirmButton,
 } from '@/components/admin/ui';
+import { HoverLift } from '@/components/admin/motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -202,7 +206,7 @@ export function AdminProductsPage() {
         }
       />
 
-      <div className="mb-4 flex flex-wrap gap-2">
+      <AdminToolbar className="mb-4 flex flex-wrap gap-2">
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -238,16 +242,18 @@ export function AdminProductsPage() {
             <SelectItem value="false">Đã ẩn</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </AdminToolbar>
 
       {loading && <AdminLoading />}
       {error && <AdminError message={error} />}
 
       {!loading && !error && (
-        <div className="space-y-3">
+        <AdminList className="space-y-3">
           {data && data.items.length > 0 ? (
             data.items.map((product) => (
-              <Card key={product.id} className="p-4">
+              <AdminListItem key={product.id}>
+                <HoverLift>
+              <Card className="p-4 transition-colors hover:border-primary/40">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -303,6 +309,8 @@ export function AdminProductsPage() {
                   ))}
                 </div>
               </Card>
+                </HoverLift>
+              </AdminListItem>
             ))
           ) : (
             <AdminEmpty
@@ -315,7 +323,7 @@ export function AdminProductsPage() {
               }
             />
           )}
-        </div>
+        </AdminList>
       )}
 
       <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeDialog()}>

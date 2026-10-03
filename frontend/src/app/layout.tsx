@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import { Be_Vietnam_Pro } from 'next/font/google';
 import { Toaster } from '@/components/ui/sonner';
 import { CartProvider } from '@/components/providers/cart-provider';
-import { SiteHeader } from '@/components/layout/site-header';
-import { SiteFooter } from '@/components/layout/site-footer';
 import './globals.css';
 
 const beVietnamPro = Be_Vietnam_Pro({
@@ -21,15 +20,18 @@ export const metadata: Metadata = {
     'Cửa hàng quần áo online dành cho nam và nữ. Áo thun, sơ mi, quần jean, váy và áo khoác chất lượng, giá tốt.',
 };
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+/**
+ * Only the document shell lives here. Each route group supplies its own
+ * layout so the storefront can show a header and footer while the admin
+ * panel renders edge to edge without them.
+ */
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="vi" className={`${beVietnamPro.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col font-sans">
+      <body className="min-h-full font-sans">
         <CartProvider>
-          <SiteHeader />
-          <main className="flex-1">{children}</main>
-          <SiteFooter />
-          <Toaster position="top-center" />
+          {children}
+          <Toaster position="top-center" richColors closeButton />
         </CartProvider>
       </body>
     </html>

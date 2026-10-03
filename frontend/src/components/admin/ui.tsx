@@ -1,10 +1,13 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { motion } from 'motion/react';
 import { Loader2, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { EASE_OUT, Stagger, StaggerItem } from '@/components/admin/motion';
 
+/** Sticky toolbar so filters stay reachable on long admin lists. */
 export function AdminHeader({
   title,
   description,
@@ -15,22 +18,91 @@ export function AdminHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-        {description && (
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+    <div className="sticky top-14 z-20 -mx-4 mb-6 border-b bg-background/85 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:top-0 lg:-mx-10 lg:px-10 lg:pt-8">
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: EASE_OUT }}
+        className="flex flex-wrap items-center justify-between gap-4"
+      >
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+          {description && (
+            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          )}
+        </div>
+        {action && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.94 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.08, duration: 0.35, ease: EASE_OUT }}
+          >
+            {action}
+          </motion.div>
         )}
-      </div>
-      {action}
+      </motion.div>
     </div>
+  );
+}
+
+/** Wraps a filter bar so it slides in under the header. */
+export function AdminToolbar({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1, duration: 0.4, ease: EASE_OUT }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/** Staggered container for list rows and cards. */
+export function AdminList({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <Stagger className={className}>{children}</Stagger>
+  );
+}
+
+export function AdminListItem({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <StaggerItem className={className} variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } }}>
+      {children}
+    </StaggerItem>
   );
 }
 
 export function AdminLoading() {
   return (
     <div className="grid place-items-center py-20">
-      <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="flex flex-col items-center gap-3"
+      >
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">Đang tải dữ liệu…</p>
+      </motion.div>
     </div>
   );
 }

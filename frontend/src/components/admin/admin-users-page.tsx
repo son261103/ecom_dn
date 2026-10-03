@@ -9,8 +9,11 @@ import {
   AdminError,
   AdminHeader,
   AdminLoading,
+  AdminToolbar,
   ConfirmButton,
 } from '@/components/admin/ui';
+import { EASE_OUT } from '@/components/admin/motion';
+import { motion } from 'motion/react';
 import { useCart } from '@/components/providers/cart-context';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -116,7 +119,7 @@ export function AdminUsersPage() {
         }
       />
 
-      <div className="mb-4 flex flex-wrap gap-2">
+      <AdminToolbar className="mb-4 flex flex-wrap gap-2">
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -137,7 +140,7 @@ export function AdminUsersPage() {
             <SelectItem value="ADMIN">Quản trị</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </AdminToolbar>
 
       {loading && <AdminLoading />}
       {error && <AdminError message={error} />}
@@ -156,11 +159,17 @@ export function AdminUsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.items.map((user) => {
+                {data.items.map((user, index) => {
                   const isSelf = user.id === currentUser?.id;
 
                   return (
-                    <tr key={user.id} className="border-b last:border-0">
+                    <motion.tr
+                      key={user.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.04, duration: 0.35, ease: EASE_OUT }}
+                      className="border-b transition-colors last:border-0 hover:bg-muted/40"
+                    >
                       <td className="px-4 py-3">
                         <p className="font-medium">
                           {user.fullName}
@@ -227,7 +236,7 @@ export function AdminUsersPage() {
                           </ConfirmButton>
                         </div>
                       </td>
-                    </tr>
+                    </motion.tr>
                   );
                 })}
               </tbody>

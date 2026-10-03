@@ -10,8 +10,11 @@ import {
   AdminError,
   AdminHeader,
   AdminLoading,
+  AdminToolbar,
   ConfirmButton,
 } from '@/components/admin/ui';
+import { EASE_OUT } from '@/components/admin/motion';
+import { motion } from 'motion/react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -125,7 +128,7 @@ export function AdminCategoriesPage() {
         }
       />
 
-      <div className="mb-4 flex flex-wrap gap-2">
+      <AdminToolbar className="mb-4 flex flex-wrap gap-2">
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -147,7 +150,7 @@ export function AdminCategoriesPage() {
             <SelectItem value="UNISEX">Unisex</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </AdminToolbar>
 
       {loading && <AdminLoading />}
       {error && <AdminError message={error} />}
@@ -167,8 +170,14 @@ export function AdminCategoriesPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.items.map((category) => (
-                  <tr key={category.id} className="border-b last:border-0">
+                {data.items.map((category, index) => (
+                  <motion.tr
+                    key={category.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.04, duration: 0.35, ease: EASE_OUT }}
+                    className="border-b transition-colors last:border-0 hover:bg-muted/40"
+                  >
                     <td className="px-4 py-3 font-medium">{category.name}</td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {category.slug}
@@ -203,7 +212,7 @@ export function AdminCategoriesPage() {
                         </ConfirmButton>
                       </div>
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
               </tbody>
             </table>
