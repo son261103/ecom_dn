@@ -70,7 +70,7 @@ cd backend
 pnpm install
 cp .env.example .env        # điền DATABASE_URL + JWT_SECRET
 pnpm prisma migrate deploy  # áp dụng migration đã có sẵn
-pnpm prisma db seed         # nạp 9 sản phẩm + 9 danh mục + 144 biến thể
+pnpm prisma db seed         # nạp 57 sản phẩm + 17 danh mục + 912 biến thể
 pnpm start:dev              # http://localhost:3005/api
 ```
 
@@ -113,6 +113,7 @@ pnpm dev                   # http://localhost:3000
 | `pnpm build` | backend | Build ra `dist/` |
 | `pnpm prisma studio` | backend | Giao diện xem DB |
 | `pnpm prisma db seed` | backend | Nạp lại dữ liệu mẫu |
+| `pnpm tsx prisma/upload-storefront.ts` | backend | Đẩy ảnh hero/banner lên Cloudinary |
 | `bash admin-api-test.sh` | backend | 83 kiểm thử API admin (cần backend đang chạy) |
 | `pnpm dev` | frontend | Dev server |
 | `pnpm build` | frontend | Production build |
@@ -235,13 +236,38 @@ CLOUDINARY_API_SECRET=your-secret
 
 Ứng dụng vẫn khởi động bình thường khi thiếu credentials — `CloudinaryService.isConfigured` trả `false`, các endpoint upload trả lỗi 400 với hướng dẫn rõ ràng, và seed giữ nguyên URL ảnh Unsplash.
 
+> **Lưu ý:** `CLOUDINARY_CLOUD_NAME` phải là tên cloud gốc trong dashboard (ví dụ
+> `mediaflows`), **không** phải tên cloud kèm UUID. Cloud đang bị disable sẽ báo
+> lỗi `Invalid cloud_name` hoặc `cloud_name is disabled` khi seed chạy — lúc đó
+> ảnh vẫn lưu URL Unsplash và web vẫn chạy bình thường, chỉ là chưa qua CDN.
+
 Sau khi điền key, chạy lại seed để đẩy toàn bộ ảnh mẫu lên CDN:
 
 ```bash
 cd backend && pnpm prisma db seed
 ```
 
-Seed dùng `public_id` dạng `{slug}-1` và `{slug}-2` với `overwrite: true`, nên chạy lại nhiều lần không tạo ảnh trùng.
+Seed dùng `public_id` dạng `category-{slug}` cho ảnh danh mục và `{slug}-1..3` cho
+ảnh sản phẩm, với `overwrite: true`, nên chạy lại nhiều lần không tạo ảnh trùng.
+
+Ảnh hero/banner của storefront không thuộc sản phẩm nào nên không nằm trong catalog.
+Script riêng đẩy nhóm ảnh này lên CDN và in ra URL để thay trong component:
+
+```bash
+cd backend && pnpm tsx prisma/upload-storefront.ts
+```
+
+Nhờ vậy **không còn hotlink Unsplash ở đâu trong frontend** — chỉ còn placeholder
+trong ô "Tảy ảnh từ URL" của trang quản lý ảnh.
+
+### Catalog mẫu
+
+Danh sách sản phẩm và danh mục nằm trong **`backend/prisma/catalog.ts`**, tách riêng
+khỏi `seed.ts` để thêm/sửa mẫu không phải đụng vào logic upload.
+
+Hiện có **57 sản phẩm / 17 danh mục / 912 biến thể**, mỗi sản phẩm 3 ảnh và đủ
+4 màu × 4 size. Mọi photo id Unsplash trong catalog đều đã được kiểm tra HTTP 200
+trước khi đưa vào — ảnh chết là nguyên nhân chính khiến trang chủ hiển thị trống.
 
 Tài khoản admin để test giao diện upload:
 
@@ -304,15 +330,20 @@ src/
 │       ├── page.tsx          tổng quan
 │       ├── products/ categories/ orders/ users/ images/
 ├── components/
-│   ├── layout/               header, footer (chỉ dùng ở storefront)
+│   ├── layout/               header, footer, Section + SectionHeading
+│   ├── home/                 hero, marquee, category-grid, product-rail,
+│   │                         editorial-banner, stats-band, value-grid, faq, newsletter
 │   ├── product/ cart/ auth/ account/
 │   ├── providers/            CartProvider (giỏ hàng + session)
+│   ├── motion/               motion primitives DÙNG CHUNG (admin + storefront)
+│   │   ├── motion.tsx        Stagger, Reveal, HoverLift, PageTransition,
+│   │   │                     Parallax, Marquee, EASE_OUT
+│   │   ├── animated-number.tsx
+│   │   └── index.ts          barrel
 │   ├── admin/
 │   │   ├── admin-shell.tsx   sidebar cố định + drawer mobile + scroll progress
 │   │   ├── admin-dashboard.tsx
 │   │   ├── admin-*-page.tsx  CRUD từng resource
-│   │   ├── motion.tsx        Stagger, Reveal, HoverLift, PageTransition
-│   │   ├── animated-number.tsx
 │   │   ├── hooks.ts          useAdminResource / useAdminAction
 │   │   └── ui.tsx            AdminHeader, AdminToolbar, AdminList, ConfirmButton
 │   └── ui/                   shadcn/ui + component từ ReUI registry
@@ -335,7 +366,7 @@ src/
     │   ├── upload.ts     UploadedImage
     │   └── index.ts      barrel export type
     ├── base-ui.tsx       helper `linkTo` cho Base UI
-    ├── format.ts         formatPrice, GENDER_LABEL
+    ├── format.ts         formatPrice, GENDER_LABEL, COLOR_SWATCH
     └── utils.ts          cn()
 ```
 
@@ -348,24 +379,37 @@ App Router **không cho nested layout thoát khỏi layout cha**, nên admin t�
 
 Cả hai cùng kế thừa `app/layout.tsx` (chỉ có `<html>`, `<body>`, `CartProvider`), nên session và toast vẫn dùng chung.
 
-## Motion & hiệu ứng scroll (khu quản trị)
+## Motion & hiệu ứng scroll
 
-Dùng [`motion`](https://motion.dev) (React 14) — `motion/react`, cùng import như ReUI dùng.
+Dùng [`motion`](https://motion.dev) — import từ `motion/react`, cùng cách ReUI dùng.
+
+Toàn bộ primitive nằm ở **`components/motion/`** và được cả admin lẫn storefront
+dùng chung. Trước đây chúng nằm trong `components/admin/motion.tsx`, nên storefront
+không import được và phải viết `motion.*` thủ công.
+
+```tsx
+import { Stagger, StaggerItem, Reveal, HoverLift, Parallax, Marquee }
+  from '@/components/motion';
+```
 
 | Hiệu ứng | Ở đâu |
 | --- | --- |
-| Scroll progress bar | Thanh 2px trên cùng, scale theo tỉ lệ cuộn |
+| Scroll progress bar | Thanh 2px trên cùng của admin, scale theo tỉ lệ cuộn |
 | Chuyển trang | `AnimatePresence` mời + trượt nhẹ theo `pathname` |
 | Sidebar active | `layoutId` trượt pill nền giữa các mục |
 | Drawer mobile | Trượt vào từ trái + overlay mờ dần |
 | Stagger list | Card/bảng hiện lần lượt khi vào trang |
 | Reveal on scroll | Khối dưới fold mờ dần khi cuộn tới (`once: true`) |
 | Đếm số | `AnimatedNumber` chạy từ 0 tới giá trị thật |
-| Thanh tiến độ | Scale từ 0 theo tỉ lệ |
+| Parallax | Ảnh hero/editorial trôi chậm hơn khung hình khi cuộn |
+| Marquee | Dải cam kết chạy ngang vô hạn |
+| Hover đổi ảnh | Product card đổi sang ảnh thứ hai khi rê chuột |
 
-Tất cả hiệu ứng đều tôn trọng `prefers-reduced-motion` — khi người dùng tắt animation, mọy thứ hiện tại luôn.
+Tất cả hiệu ứng đều tôn trọng `prefers-reduced-motion` — khi người dùng tắt animation,
+mọi thứ hiện tại luôn (kiểm bằng `useReducedMotion()` trong từng primitive, cộng thêm
+block `@media (prefers-reduced-motion: reduce)` trong `globals.css`).
 
-Thêm hiệu ứng cho admin mới: dùng các component trong `components/admin/motion.tsx` (`Stagger`, `StaggerItem`, `Reveal`, `HoverLift`, `PageTransition`) thay vì tự viết `motion.*` mỗi chỗ.
+Thêm hiệu ứng mới: dùng component trong `components/motion/` thay vì tự viết `motion.*` mỗi chỗ.
 
 ### Vì sao tách `api/` và `types/` riêng
 
@@ -393,6 +437,36 @@ import { adminApi } from '@/lib/api/admin';   // phải import tường minh
 Nhờ vậy lướt tìm kiếm trong project sẽ cho thấy chính xác chỗ nào gọi API admin, và trang khách không vô tình gọi nhầm. Phía backend cũng tương ứng: mọi route admin nằm dưới `/api/admin/*` trong `AdminModule`.
 
 Thêm endpoint mới chỉ cần sửa đúng file của domain đó, không đụng domain khác.
+
+## Trang chủ
+
+`app/(storefront)/page.tsx` là server component, gọi API song song bằng `Promise.all`.
+Mỗi request có `.catch(() => fallback)` riêng nên API chết một phần không làm trang trắng.
+
+11 section theo thứ tự:
+
+1. **Hero** — copy + collage ảnh parallax, sản phẩm nổi bật nhúng vào góc
+2. **Marquee** — dải cam kết chạy ngang
+3. **Danh mục** — grid danh mục từ `GET /categories`, có số sản phẩm
+4. **Sản phẩm nổi bật** — grid 4 cột từ `GET /products/featured`
+5. **Mới về** — carousel Embla, kéo được bằng chuột
+6. **Đồ unisex**
+7. **Thời trang nam**
+8. **Thời trang nữ**
+9. **Banner editorial** — ảnh lớn có parallax
+10. **Con số** — 4 số đếm dần, lấy từ `meta.total` của API
+11. **Cam kết dịch vụ → FAQ → Newsletter**
+
+### Vì sao section thống kê gọi 3 request `limit=1`
+
+`GET /api/admin/stats` là admin-only, còn storefront không được gọi. Thay vì mở
+endpoint mới, trang chủ đọc `meta.total` từ các request list có `limit: 1` —
+nhẹ hơn tải cả danh sách về, và **con số luôn khớp với API thật**, không bịa
+lượng khách hàng hay đơn hàng (seed không tạo user/order nên không có số đó để hiện).
+
+Form newsletter hiện xác nhận ở client vì backend chưa có endpoint subscribe;
+chỗ gọi request duy nhất khi có API là `handleSubmit` trong
+`components/home/newsletter.tsx`.
 
 ## Ghi chú về shadcn/ui + ReUI
 

@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Shell(node -v; npm -v; pnpm -v 2>/dev/null; git --version; pwd; ls -la)"
+      "Shell(node -v; npm -v; pnpm -v 2>/dev/null; git --version; pwd; ls -la)",
+      "Shell(cat > /tmp/commandcode-1000/-home-roser-Work-Code-ecom-dn/9818adb9-e168-460d-9266-431173e32c9c/scratchpad/probe.sh <<'EOF' #!/bin/sh # Probe Unsplash photo ids, print only the alive ones. for id in \"$@\"; do code=$(curl -s -o /dev/null -w \"%{http_code}\" --max-time 15 \"https://images.unsplash.com/$id?w=200&q=60&fit=crop\") if [ \"$code\" = \"200\" ]; then echo \"OK $id\"; else echo \"DEAD $code $id\"; fi done EOF chmod +x /tmp/commandcode-1000/-home-roser-Work-Code-ecom-dn/9818adb9-e168-460d-9266-431173e32c9c/scratchpad/probe.sh && echo ready)"
     ],
     "deny": [],
     "defaultMode": "default"
