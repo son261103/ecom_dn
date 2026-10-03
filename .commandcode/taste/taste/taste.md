@@ -1,0 +1,11 @@
+# Taste
+- Writes and expects replies in Vietnamese (casual, unpunctuated, mixed loanwords). Keep explanations, docs, and commit messages in Vietnamese unless asked otherwise. Confidence: 0.9
+- Gives short, high-level briefs ("make a clothing site for men and women, make it pretty, set it up") and expects the agent to fill in the architecture and make routine decisions rather than being asked about every choice. Confidence: 0.7
+- Full-stack default is NestJS (backend) + Next.js / React (frontend), TypeScript throughout. Confidence: 0.85
+- Builds UI from a component registry — explicitly asked for ReUI, which is shadcn-compatible. Reach for shadcn-style registries when choosing UI primitives. Confidence: 0.8
+- Cares about visual quality, not just function ("làm sao cho đẹp là được"). Budget real effort for polish and for looking at the rendered result. Confidence: 0.8
+- Wants backend and frontend clearly separated, stated as being for their own maintainability ("để tôi dễ maintain"). Prefer a monorepo with distinct `backend/` and `frontend/` apps over mixing concerns. Confidence: 0.85
+- Strongly wants dependencies on the newest possible versions — challenged the agent for using Prisma 7 ("ủa sao ko dùng prisma 8 mới nhất chuyển sang dùng các thứ mới nhất nhé chứ ok được dùng các version cũ đâu"). Run `pnpm outdated` / `npm view <pkg> dist-tags` proactively and upgrade rather than defaulting to conservative pins. Confidence: 0.9
+- When offered "keep stable" vs "upgrade to new major/RC", picks the new major (chose Prisma 8 RC and TypeScript 7 over the recommended stable versions). Default to proposing the bleeding-edge option as viable. Confidence: 0.75
+- Expects the agent to explain a version decision with concrete evidence (npm dist-tags, peer deps, whether packages are actually published) rather than deferring to stale knowledge about what "latest" is. Confidence: 0.7
+- Asks the agent to set the project up end to end ("hãy cài setup project giúp tôi") — a scaffolded project with dependencies installed and building/running is the deliverable, not snippets to paste. Confidence: 0.8

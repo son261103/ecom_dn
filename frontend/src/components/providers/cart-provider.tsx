@@ -68,21 +68,30 @@ const userStore = createLocalStore<User | null>(USER_KEY, null);
 const tokenStore = createLocalStore<string | null>(TOKEN_KEY, null);
 const flagStore = createLocalStore<boolean>('__hydrated', false);
 
+/**
+ * React compares server snapshots with `Object.is`, so these must be stable
+ * references — an inline `() => []` would produce a new array every render and
+ * warn about an infinite loop.
+ */
+const SERVER_ITEMS: CartItem[] = [];
+const SERVER_USER: User | null = null;
+const SERVER_TOKEN: string | null = null;
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const items = useSyncExternalStore(
     itemsStore.subscribe,
     itemsStore.read,
-    () => [],
+    () => SERVER_ITEMS,
   );
   const user = useSyncExternalStore(
     userStore.subscribe,
     userStore.read,
-    () => null,
+    () => SERVER_USER,
   );
   const token = useSyncExternalStore(
     tokenStore.subscribe,
     tokenStore.read,
-    () => null,
+    () => SERVER_TOKEN,
   );
   const hydrated = useSyncExternalStore(
     flagStore.subscribe,
